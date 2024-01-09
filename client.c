@@ -54,6 +54,15 @@ int main()
         exit(1);
     }
 
-    puts(response_buffer);
+    if(memcmp("ERROR\n", response_buffer, 7) == 0)
+    {
+        puts("Server responded with an error:");
+        puts(response_buffer + 7);
+    }
+    else
+    {
+        puts(response_buffer);
+    }
+
     close(sock);
 }
