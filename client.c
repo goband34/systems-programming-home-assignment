@@ -5,9 +5,11 @@
 #include <string.h>
 #include <unistd.h>
 #include "misc.h"
+#include "logging.h"
 
 int main()
 {
+    set_log_file_name("client_log");
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if(sock == -1)
     {
@@ -54,14 +56,61 @@ int main()
         exit(1);
     }
 
-    if(memcmp("ERROR\n", response_buffer, 7) == 0)
+    if(memcmp("ERROR\n", response_buffer, 6) == 0)
     {
-        puts("Server responded with an error:");
-        puts(response_buffer + 7);
+        puts("Error occurred");
+        int log_result = log_error(response_buffer + 6);
+        if(log_result < 0)
+        {
+            if(log_result == -1)
+            {
+                puts("Log file not initialised");
+            }
+            else if(log_result == -2)
+            {
+                puts("Failed opening the log file");
+            }
+            else if(log_result == -3)
+            {
+                puts("Failed writing to the log file");
+            }
+            else
+            {
+                puts("Unknown error occurred");
+            }
+        }
+        else
+        {
+            puts("Successfully logged the error");
+        }
     }
     else
     {
-        puts(response_buffer);
+        puts("Successful communication");
+        int log_result = log_response(response_buffer + 6);
+        if(log_result < 0)
+        {
+            if(log_result == -1)
+            {
+                puts("Log file not initialised");
+            }
+            else if(log_result == -2)
+            {
+                puts("Failed opening the log file");
+            }
+            else if(log_result == -3)
+            {
+                puts("Failed writing to the log file");
+            }
+            else
+            {
+                puts("Unknown error occurred");
+            }
+        }
+        else
+        {
+            puts("Successfully logged the response");
+        }
     }
 
     close(sock);

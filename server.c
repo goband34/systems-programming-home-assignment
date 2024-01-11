@@ -94,5 +94,10 @@ int main()
             memset(input_buffer, 0, 99);
             close(client_sock);
         }
+
+        // Was getting really high CPU usage so hoping this offsets it
+        // Real code would use select/epoll/whatever, but that's too much
+        // for the assignment
+        sleep(1);
     }
 }
