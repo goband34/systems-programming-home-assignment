@@ -75,14 +75,15 @@ int main()
                 close(connection_sock);
                 exit(1);
             }
+            sleep(5);
 
             unsigned long recv_time = time(NULL);
 
             generalised_log(log_prefix, input_buffer, LOG_RECEIVE);
             if(strcmp(input_buffer, "GETTIME") == 0)
             {
+                sleep(5);
                 unsigned long resp_time = time(NULL);
-
                 // TODO: See if it's reasonable to make the buffer smaller
                 char response[200];
                 sprintf(response, "TIME t1:%ld t2:%ld\n", recv_time, resp_time);

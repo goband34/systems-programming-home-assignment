@@ -5,10 +5,13 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <time.h>
 #include "misc.h"
 #include "logging.h"
+#include "response_model.h"
 
 char log_prefix[] = "Client";
+struct response_model response_model;
 
 int send_request_to_server(int sock, struct sockaddr *addr, size_t addr_size, char *response_buffer, size_t response_buffer_size)
 {
@@ -25,7 +28,7 @@ int send_request_to_server(int sock, struct sockaddr *addr, size_t addr_size, ch
         generalised_log(log_prefix, strerror(errno), LOG_ERROR);
         return -2;
     }
-
+    response_model.t1 = time(NULL);
     if(send(sock, input_buffer, strlen(input_buffer), 0) == -1)
     {
         generalised_log(log_prefix, strerror(errno), LOG_ERROR);
@@ -38,6 +41,7 @@ int send_request_to_server(int sock, struct sockaddr *addr, size_t addr_size, ch
         generalised_log(log_prefix, strerror(errno), LOG_ERROR);
         return -4;
     }
+    response_model.t4 = time(NULL);
     generalised_log(log_prefix, response_buffer, LOG_RECEIVE);
 
     ensure_string_terminated(response_buffer, response_buffer_size);
@@ -69,7 +73,8 @@ int main()
         exit(1);
     }
 
-    print_time_response(response_buffer);
+    response_model_fill_with(response_buffer, &response_model);
+    print_response_model(&response_model);
 
     close(sock);
 }
