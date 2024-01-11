@@ -4,6 +4,7 @@ clean_all:
 debug: client.c server.c misc.c logging.c
 	-mkdir bin
 	-mkdir bin/dbg
+	-mkdir bin/dbg/logs
 	gcc client.c logging.c misc.c -g -D ROOT_DIR='"$(PWD)/bin/dbg"' -O0 -o bin/dbg/client
 	gcc server.c logging.c misc.c -g -D ROOT_DIR='"$(PWD)/bin/dbg"' -O0 -o bin/dbg/server
 release: client.c server.c misc.c logging.c
