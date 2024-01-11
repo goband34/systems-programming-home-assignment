@@ -4,16 +4,54 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 #include "misc.h"
 #include "logging.h"
 
+char log_prefix[] = "Client";
+
+int send_request_to_server(int sock, struct sockaddr *addr, size_t addr_size, char *response_buffer, size_t response_buffer_size)
+{
+    if(connect(sock, addr, addr_size) == -1)
+    {
+        generalised_log(log_prefix, strerror(errno), LOG_ERROR);
+        return -1;
+    }
+
+    char input_buffer[100];
+    puts("Enter a request:");
+    if(!scanf("%99s", input_buffer))
+    {
+        generalised_log(log_prefix, strerror(errno), LOG_ERROR);
+        return -2;
+    }
+
+    if(send(sock, input_buffer, strlen(input_buffer), 0) == -1)
+    {
+        generalised_log(log_prefix, strerror(errno), LOG_ERROR);
+        return -3;
+    }
+    generalised_log(log_prefix, input_buffer, LOG_SEND);
+
+    if(recv(sock, response_buffer, response_buffer_size, 0) == -1)
+    {
+        generalised_log(log_prefix, strerror(errno), LOG_ERROR);
+        return -4;
+    }
+    generalised_log(log_prefix, response_buffer, LOG_RECEIVE);
+
+    ensure_string_terminated(response_buffer, response_buffer_size);
+
+    return 1;
+}
+
 int main()
 {
-    set_log_file_name("client_log");
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if(sock == -1)
     {
-        print_errors("Failed opening the socket");
+        puts("Client error, check the logs");
+        generalised_log(log_prefix, strerror(errno), LOG_ERROR);
         exit(1);
     }
 
@@ -22,96 +60,16 @@ int main()
     addr.sin_addr.s_addr = inet_addr("127.0.0.1");
     addr.sin_port = htons(12345);
 
-    int connection_result = connect(sock, (struct sockaddr*)(&addr), sizeof(addr));
-    if(connection_result == -1)
-    {
-        print_errors("Failed connecting to the server");
-        close(sock);
-        exit(1);
-    }
-
-    char input_buffer[100];
-    puts("Enter a request:");
-    if(!scanf("%99s", input_buffer))
-    {
-        print_errors("Reading the request failed");
-        close(sock);
-        exit(1);
-    }
-
-    int send_result = send(sock, input_buffer, strlen(input_buffer), 0);
-    if(send_result == -1)
-    {
-        print_errors("Sending the request failed");
-        close(sock);
-        exit(1);
-    }
-
     char response_buffer[100];
-    int recv_result = recv(sock, response_buffer, 99, 0);
-    if(recv_result == -1)
+    int send_result = send_request_to_server(sock, (struct sockaddr*)&addr, sizeof(addr), response_buffer, 100);
+    if(send_result < 0)
     {
-        print_errors("Failed receiving from the connection");
+        puts("Client error, check the logs");
         close(sock);
         exit(1);
     }
 
-    if(memcmp("ERROR\n", response_buffer, 6) == 0)
-    {
-        puts("Error occurred");
-        int log_result = log_error(response_buffer + 6);
-        if(log_result < 0)
-        {
-            if(log_result == -1)
-            {
-                puts("Log file not initialised");
-            }
-            else if(log_result == -2)
-            {
-                puts("Failed opening the log file");
-            }
-            else if(log_result == -3)
-            {
-                puts("Failed writing to the log file");
-            }
-            else
-            {
-                puts("Unknown error occurred");
-            }
-        }
-        else
-        {
-            puts("Successfully logged the error");
-        }
-    }
-    else
-    {
-        puts("Successful communication");
-        int log_result = log_response(response_buffer + 6);
-        if(log_result < 0)
-        {
-            if(log_result == -1)
-            {
-                puts("Log file not initialised");
-            }
-            else if(log_result == -2)
-            {
-                puts("Failed opening the log file");
-            }
-            else if(log_result == -3)
-            {
-                puts("Failed writing to the log file");
-            }
-            else
-            {
-                puts("Unknown error occurred");
-            }
-        }
-        else
-        {
-            puts("Successfully logged the response");
-        }
-    }
+    print_time_response(response_buffer);
 
     close(sock);
 }

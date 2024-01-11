@@ -1,70 +1,37 @@
 #include <stdio.h>
 #include <string.h>
+#include "logging.h"
 
-short log_file_init = 0;
-char log_file_name[100];
-
-// Relative name
-int set_log_file_name(char *name)
+// Assume content formatted
+int log_receive(char *prefix, char *content)
 {
-    if(strlen(name) > 99)
-    {
-        return -1;
-    }
-
-    strcpy(log_file_name, name);
-    log_file_init = 1;
-    return 1;
-}
-
-// Assume response formatted
-int log_response(char *response)
-{
-    if(!log_file_init)
-    {
-        return -1;
-    }
-
-    // Max length supported by Linux + 1, might be an overkill
-    char file_path[4097];
-    sprintf(file_path, "%s/logs/%s", ROOT_DIR, log_file_name); 
-
-    FILE *fp = fopen(file_path, "a");
+    FILE *fp = fopen(LOG_FILE_PATH, "a");
     if(fp == NULL)
     {
-        return -2;
+        return -1;
     }
 
-    if(fprintf(fp, "RESPONSE: %s\n", response) < 0)
+    if(fprintf(fp, "%s RECEIVE: %s\n", prefix, content) < 0)
     {
-        return -3;
+        return -2;
     }
 
     fclose(fp);
     return 1;
 }
 
-// Assume request formatted
-int log_request(char *request)
+// Assume content formatted
+int log_send(char *prefix, char *content)
 {
-    if(!log_file_init)
+    FILE *fp = fopen(LOG_FILE_PATH, "a");
+    if(fp == NULL)
     {
         return -1;
     }
 
-    // Max length supported by Linux + 1, might be an overkill
-    char file_path[4097];
-    sprintf(file_path, "%s/logs/%s", ROOT_DIR, log_file_name); 
-
-    FILE *fp = fopen(file_path, "a");
-    if(fp == NULL)
+    if(fprintf(fp, "%s SEND: %s\n", prefix, content) < 0)
     {
         return -2;
-    }
-
-    if(fprintf(fp, "REQUEST: %s\n", request) < 0)
-    {
-        return -3;
     }
 
     fclose(fp);
@@ -72,29 +39,57 @@ int log_request(char *request)
 }
 
 // Assume error formatted
-int log_error(char *error)
+int log_error(char *prefix, char *error)
 {
-    if(!log_file_init)
+    FILE *fp = fopen(LOG_FILE_PATH, "a");
+    if(fp == NULL)
     {
         return -1;
     }
 
-    // Max length supported by Linux + 1, might be an overkill
-    char file_path[4097];
-    sprintf(file_path, "%s/logs/%s", ROOT_DIR, log_file_name); 
-
-    FILE *fp = fopen(file_path, "a");
-    if(fp == NULL)
+    if(fprintf(fp, "%s ERROR: %s\n", prefix, error) < 0)
     {
         return -2;
-    }
-
-    if(fprintf(fp, "ERROR: %s\n", error) < 0)
-    {
-        return -3;
     }
 
     fclose(fp);
     return 1;
 }
 
+int generalised_log(char *prefix, char *buf, short log_type)
+{
+    int log_result;
+    switch(log_type) {
+    case LOG_RECEIVE:
+        log_result = log_receive(prefix, buf);
+        break;
+    case LOG_SEND:
+        log_result = log_send(prefix, buf);
+        break;
+    case LOG_ERROR:
+        log_result = log_error(prefix, buf);
+        break;
+    default:
+        return -1;
+    }
+
+    if(log_result < 0)
+    {
+        if(log_result == -1)
+        {
+            puts("Failed opening the log file");
+        }
+        else if(log_result == -2)
+        {
+            puts("Failed writing to the log file");
+        }
+        else
+        {
+            puts("Unknown error occurred");
+        }
+
+        return log_result;
+    }
+    
+    return 1;
+}

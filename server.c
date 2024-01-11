@@ -7,13 +7,33 @@
 #include <errno.h>
 #include <time.h>
 #include "misc.h"
+#include "logging.h"
+
+char log_prefix[] = "Server";
+
+int connection_socket_setup(int sock, struct sockaddr *addr, size_t addr_size)
+{
+    if(bind(sock, addr, addr_size) == -1)
+    {
+        generalised_log(log_prefix, strerror(errno), LOG_ERROR);
+        return -1;
+    }
+
+    if(listen(sock, 1) == -1)
+    {
+        generalised_log(log_prefix, strerror(errno), LOG_ERROR);
+        return -2;
+    }
+
+    return 1;
+}
 
 int main()
 {
     int connection_sock = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
     if(connection_sock == -1)
     {
-        print_errors("Failed opening the socket");
+        generalised_log(log_prefix, strerror(errno), LOG_ERROR);
         exit(1);
     }
 
@@ -23,16 +43,8 @@ int main()
     addr.sin_port = htons(12345);
     socklen_t addr_size = sizeof(addr);
 
-    if(bind(connection_sock, (struct sockaddr*)&addr, sizeof(addr)) == -1)
+    if(connection_socket_setup(connection_sock, (struct sockaddr*)&addr, sizeof(addr)) < 0)
     {
-        print_errors("Failed binding");
-        close(connection_sock);
-        exit(1);
-    }
-
-    if(listen(connection_sock, 1) == -1)
-    {
-        print_errors("Failed listening");
         close(connection_sock);
         exit(1);
     }
@@ -46,7 +58,8 @@ int main()
         {
             if(errno != EAGAIN && errno != EWOULDBLOCK)
             {
-                print_errors("Main loop failure");
+                puts("Main loop failure, check the logs");
+                generalised_log(log_prefix, strerror(errno), LOG_ERROR);
                 close(connection_sock);
                 exit(1);
             }
@@ -56,7 +69,8 @@ int main()
             puts("Client connected");
             if(recv(client_sock, input_buffer, 99, 0) == -1)
             {
-                print_errors("Failed receiving from the connection");
+                puts("Server error, check the logs");
+                generalised_log(log_prefix, strerror(errno), LOG_ERROR);
                 close(client_sock);
                 close(connection_sock);
                 exit(1);
@@ -64,31 +78,38 @@ int main()
 
             unsigned long recv_time = time(NULL);
 
-            printf("Received message from client: %s\n", input_buffer);
+            generalised_log(log_prefix, input_buffer, LOG_RECEIVE);
             if(strcmp(input_buffer, "GETTIME") == 0)
             {
                 unsigned long resp_time = time(NULL);
+
                 // TODO: See if it's reasonable to make the buffer smaller
                 char response[200];
-                sprintf(response, "Time t1:%ld t2:%ld", recv_time, resp_time);
-                if(send(client_sock, response, strlen(response), 0) == -1)
+                sprintf(response, "TIME t1:%ld t2:%ld\n", recv_time, resp_time);
+                if(send(client_sock, response, strlen(response)+1, 0) == -1)
                 {
-                    print_errors("Failed sending a reply");
+                    puts("Server error, check the logs");
+                    generalised_log(log_prefix, strerror(errno), LOG_ERROR);
                     close(client_sock);
                     close(connection_sock);
                     exit(1);
                 }
+                
+                generalised_log(log_prefix, response, LOG_SEND);
             }
             else
             {
-                char response[] = "Error\nInvalid Message\n";
-                if(send(client_sock, response, strlen(response), 0) == -1)
+                char response[] = "ERROR\nInvalid Message\n";
+                if(send(client_sock, response, strlen(response)+1, 0) == -1)
                 {
-                    print_errors("Failed sending a reply");
+                    puts("Server error, check the logs");
+                    generalised_log(log_prefix, strerror(errno), LOG_ERROR);
                     close(client_sock);
                     close(connection_sock);
                     exit(1);
                 }
+
+                generalised_log(log_prefix, response, LOG_SEND);
             }
 
             memset(input_buffer, 0, 99);
