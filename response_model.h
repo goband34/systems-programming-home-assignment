@@ -6,4 +6,5 @@ struct response_model {
 };
 
 void response_model_fill_with(char*, struct response_model*);
-void print_response_model(struct response_model*);
+time_t print_response_model(struct response_model*);
+int set_system_time(time_t);

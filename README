@@ -1,0 +1,18 @@
+* Source files
+** client.c
+Contains the code for the client
+** server.c
+Contains the code for the server
+** logging.c
+Contains the code for logging
+** response_model.c
+Contains the code for handling the server response
+
+* Header files
+** misc.h
+Contains function declarations of misc.c
+** response_model.h
+Contains function declaratiosn of response_model.c
+
+* Logging
+Logging is by default done in bin/[dbg|rls]/logs/all.log but can be overriden with --log [dir] for both client and server

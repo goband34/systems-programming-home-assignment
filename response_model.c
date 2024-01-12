@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <sys/time.h>
 #include "response_model.h"
 
 void response_model_fill_with(char *buf, struct response_model *m)
@@ -20,10 +21,25 @@ void response_model_fill_with(char *buf, struct response_model *m)
     m->t3 = t2;
 }
 
-void print_response_model(struct response_model *m)
+time_t print_response_model(struct response_model *m)
 {
-    // BUG: Time not being printed properly for some reason
-    // Different timestamps but same time
-    printf("Time 1: %d\nTime 2: %d\nTime 3: %d\nTime 4: %d\n", m->t1, m->t2, m->t3, m->t4);
-    printf("Time 1: %s\nTime 2: %s\nTime 3: %s\nTime 4: %s\n", ctime(&(m->t1)), ctime(&(m->t2)), ctime(&(m->t3)), ctime(&(m->t4)));
+    int delay = ((m->t2 - m->t1) + (m->t3 - m->t4))/2;
+    time_t adjusted_time = m->t4 + delay;
+    
+    printf("Time 1: %s\n", ctime(&(m->t1)));
+    printf("Time 2: %s\n", ctime(&(m->t2)));
+    printf("Time 3: %s\n", ctime(&(m->t3)));
+    printf("Time 4: %s\n", ctime(&(m->t4)));
+    printf("Delay: %d\n", delay);
+    printf("Final adjusted time: %s\n", ctime(&adjusted_time));
+
+    return adjusted_time;
+}
+
+int set_system_time(time_t t)
+{
+    struct timeval new_time;
+    new_time.tv_sec = t;
+    new_time.tv_usec = 0;
+    return settimeofday(&new_time, NULL);
 }

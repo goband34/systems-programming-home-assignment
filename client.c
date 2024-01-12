@@ -49,8 +49,19 @@ int send_request_to_server(int sock, struct sockaddr *addr, size_t addr_size, ch
     return 1;
 }
 
-int main()
+int main(int argc, char **argv)
 {
+    if(argc > 1)
+    {
+        for(size_t i = 1; i < argc; i++)
+        {
+            if(strcmp(argv[i], "--log") == 0)
+            {
+                set_log_file_path(argv[i+1]);
+            }
+        }
+    }
+
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if(sock == -1)
     {
@@ -73,8 +84,28 @@ int main()
         exit(1);
     }
 
-    response_model_fill_with(response_buffer, &response_model);
-    print_response_model(&response_model);
+    if(!is_error_response(response_buffer))
+    {
+        response_model_fill_with(response_buffer, &response_model);
+        #ifdef FULL_VERSION
+        time_t updated_time = print_response_model(&response_model);
+        if(set_system_time(updated_time) == 0)
+        {
+            puts("Successfully set the system time");
+        }
+        else
+        {
+            puts("Client error, check the logs");
+            generalised_log(log_prefix, strerror(errno), LOG_ERROR);
+        }
+        #else
+        print_response_model(&response_model);
+        #endif
+    }
+    else
+    {
+        puts("Server responded with an error, check the logs");
+    }
 
     close(sock);
 }

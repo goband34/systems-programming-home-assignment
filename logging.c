@@ -2,10 +2,18 @@
 #include <string.h>
 #include "logging.h"
 
+// Max linux path length and null terminator
+char log_file_path[4097] = DEFAULT_LOG_FILE_PATH;
+
+void set_log_file_path(char *path)
+{
+    strncpy(log_file_path, path, 4097);
+}
+
 // Assume content formatted
 int log_receive(char *prefix, char *content)
 {
-    FILE *fp = fopen(LOG_FILE_PATH, "a");
+    FILE *fp = fopen(log_file_path, "a");
     if(fp == NULL)
     {
         return -1;
@@ -23,7 +31,7 @@ int log_receive(char *prefix, char *content)
 // Assume content formatted
 int log_send(char *prefix, char *content)
 {
-    FILE *fp = fopen(LOG_FILE_PATH, "a");
+    FILE *fp = fopen(log_file_path, "a");
     if(fp == NULL)
     {
         return -1;
@@ -41,7 +49,7 @@ int log_send(char *prefix, char *content)
 // Assume error formatted
 int log_error(char *prefix, char *error)
 {
-    FILE *fp = fopen(LOG_FILE_PATH, "a");
+    FILE *fp = fopen(log_file_path, "a");
     if(fp == NULL)
     {
         return -1;

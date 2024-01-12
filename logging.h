@@ -7,3 +7,4 @@ int log_receive(char*, char*);
 int log_send(char*, char*);
 int log_error(char*, char*);
 int generalised_log(char*, char*, short);
+void set_log_file_path(char*);
